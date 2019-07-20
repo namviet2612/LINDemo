@@ -10,6 +10,12 @@
 #ifndef RTE_COMPONENTS_H
 #define RTE_COMPONENTS_H
 
+
+/*
+ * Define the Device Header File: 
+ */
+#define CMSIS_device_header "stm32f3xx.h"
+
 #define RTE_DEVICE_LL_DRIVERS_USED
           #define RTE_DEVICE_LL_COMMON
 #define RTE_DEVICE_LL_PWR

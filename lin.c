@@ -4,13 +4,41 @@
 Lin_ModuleState gLinModuleState = LIN_UNINIT;
 const Lin_ConfigType *pLinCurrentConfig;
 
+/* Static function */
+static Std_ReturnType Lin_Ipw_SendHeader(int Channel, const Lin_PduType *pcPduInfoPtr);
+
 void Lin_Init(const Lin_ConfigType *Config)
 {
-    if (Config == NULL_PTR)
+    ErrorStatus linErrorStatus = ERROR;
+    Lin_ChannelConfigType *pLinCurrentChannelConfig = Config->pLinChannelConfig;
+    USART_TypeDef *pCurrentUSARTType = NULL_PTR;
+    LL_USART_InitTypeDef *pCurrentUSARTInitType = NULL_PTR;
+    int u8ChannelCounter = 0;
+
+    if (Config != NULL_PTR)
     {
         if (gLinModuleState == LIN_UNINIT)
         {
-            pLinCurrentConfig = Config;
+            for (u8ChannelCounter = 0; u8ChannelCounter < Config->numberOfChannel; u8ChannelCounter++)
+            {
+                pCurrentUSARTType = (pLinCurrentChannelConfig + u8ChannelCounter)->pUSARTType;
+                pCurrentUSARTInitType = (pLinCurrentChannelConfig + u8ChannelCounter)->pUSARTInit;
+
+                /* First disable USART mode by clear UE bit */
+                pCurrentUSARTType->CR1 &= (~USART_CR1_UE_Msk);
+                /* Clear STOP and CLKEN bits in CR2 as guidance from reference manual */
+                pCurrentUSARTType->CR2 &= (~(USART_CR2_STOP_Msk | USART_CR2_CLKEN_Msk));
+                /* Clear SCEN, HDSEL and IREn in CR3 as guidance from reference manual */
+                pCurrentUSARTType->CR3 &= (~(USART_CR3_SCEN_Msk | USART_CR3_HDSEL_Msk | USART_CR3_IREN_Msk));
+                /* Then enable LIN mode */
+                pCurrentUSARTType->CR2 |= USART_CR2_LINEN_Msk;
+
+                if (linErrorStatus == SUCCESS)
+                {
+                    pLinCurrentChannelConfig->u8ChannelState = LIN_CH_OPERATIONAL;
+                }
+            }
+            gLinModuleState = LIN_INIT;
         }
     }
 }
@@ -26,6 +54,8 @@ Std_ReturnType Lin_CheckWakeup(int Channel)
     {
         return (Std_ReturnType)E_NOT_OK;
     }
+
+    /* TODO: SWS_Lin_00098 */
 
     return (Std_ReturnType)E_OK;
 }
@@ -48,9 +78,14 @@ Std_ReturnType Lin_SendFrame(int Channel, const Lin_PduType *PduInfoPtr)
         return (Std_ReturnType)E_NOT_OK;
     }
 
-    if ((pLinCurrentChannelConfig + Channel)->currentChannelState == LIN_CH_SLEEP)
+    if ((pLinCurrentChannelConfig + Channel)->u8ChannelState == LIN_CH_SLEEP_STATE)
     {
         return (Std_ReturnType)E_NOT_OK;
+    }
+
+    if (E_OK == Lin_Ipw_SendHeader(Channel, PduInfoPtr))
+    {
+
     }
 
     return (Std_ReturnType)E_OK;
@@ -99,7 +134,7 @@ Std_ReturnType Lin_Wakeup(int Channel)
         return (Std_ReturnType)E_NOT_OK;
     }
 
-    if (&pLinCurrentChannelConfig[Channel].currentChannelState != LIN_CH_SLEEP)
+    if ((pLinCurrentChannelConfig + Channel)->u8ChannelState == LIN_CH_SLEEP_STATE)
     {
         return (Std_ReturnType)E_NOT_OK;
     }
@@ -120,7 +155,7 @@ Std_ReturnType Lin_WakeupInternal(int Channel)
         return (Std_ReturnType)E_NOT_OK;
     }
 
-    if (&pLinCurrentChannelConfig[Channel].currentChannelState != LIN_CH_SLEEP)
+    if ((pLinCurrentChannelConfig + Channel)->u8ChannelState == LIN_CH_SLEEP_STATE)
     {
         return (Std_ReturnType)E_NOT_OK;
     }
@@ -147,4 +182,10 @@ Lin_StatusType Lin_GetStatus(int Channel, int **Lin_SduPtr)
     }
 
     return linCurrentStatus;
+}
+
+static Std_ReturnType Lin_Ipw_SendHeader(int Channel, const Lin_PduType *pcPduInfoPtr)
+{
+
+    return E_OK;
 }

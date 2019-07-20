@@ -54,7 +54,7 @@ typedef enum Lin_ChannelState
 {
     LIN_CH_OPERATIONAL = 0x00,
     LIN_CH_SLEEP_PENDING,
-    LIN_CH_SLEEP
+    LIN_CH_SLEEP_STATE
 } Lin_ChannelState;
 
 #endif /* LIN_GENERALTYPES_H */
