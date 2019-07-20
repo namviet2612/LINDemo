@@ -3,6 +3,7 @@
 
 #include "Lin_GeneralTypes.h"
 #include "stm32f3xx_ll_usart.h"
+#include "stm32f3xx_ll_rcc.h"
 #include "stm32f303xc.h"
 
 /* User definitions */

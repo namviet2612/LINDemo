@@ -6,13 +6,16 @@ const Lin_ConfigType *pLinCurrentConfig;
 
 /* Static function */
 static Std_ReturnType Lin_Ipw_SendHeader(uint8_t Channel, const Lin_PduType *pcPduInfoPtr);
+static void Lin_USART_SetBaudrate(USART_TypeDef *USARTx, uint32_t u32Baudrate);
+static uint32_t Lin_USART_Get_Peripheral_Clk(USART_TypeDef *USARTx);
 
 void Lin_Init(const Lin_ConfigType *Config)
 {
-    ErrorStatus linErrorStatus = ERROR;
+    ErrorStatus linErrorStatus[LIN_MAX_HW_CHANNEL] = {0};
     Lin_ChannelConfigType *pLinCurrentChannelConfig = Config->pLinChannelConfig;
     USART_TypeDef *pCurrentUSARTType = NULL_PTR;
     uint8_t u8ChannelCounter = 0;
+    uint32_t u32Baudrate = 0;
 
     if (Config != NULL_PTR)
     {
@@ -24,14 +27,53 @@ void Lin_Init(const Lin_ConfigType *Config)
 
                 /* First disable USART mode by clear UE bit */
                 pCurrentUSARTType->CR1 &= (~USART_CR1_UE_Msk);
-                /* Clear STOP and CLKEN bits in CR2 as guidance from reference manual */
-                pCurrentUSARTType->CR2 &= (~(USART_CR2_STOP_Msk | USART_CR2_CLKEN_Msk));
-                /* Clear SCEN, HDSEL and IREn in CR3 as guidance from reference manual */
+
+                /* Disable USART synchronous mode */
+                pCurrentUSARTType->CR2 &= (~USART_CR2_CLKEN_Msk);
+
+                /* Disable smartcard mode, half duplex mode and iR mode */
                 pCurrentUSARTType->CR3 &= (~(USART_CR3_SCEN_Msk | USART_CR3_HDSEL_Msk | USART_CR3_IREN_Msk));
-                /* Then enable LIN mode */
+
+                /* Configuration of USART: Datawidth = 8, StopBits = 1, No Parity */
+                /* PCE = 0, M bits = 00, stop bits = 00 */
+                pCurrentUSARTType->CR1 &= (~(USART_CR1_M_Msk | USART_CR1_PCE_Msk | USART_CR2_STOP_Msk));
+
+                /* COnfigure Baudrate */
+                u32Baudrate = (pLinCurrentChannelConfig + u8ChannelCounter)->baudrate;
+
+                if (u32Baudrate != 0)
+                {
+                    Lin_USART_SetBaudrate(pCurrentUSARTType,u32Baudrate);
+                }
+                else
+                {
+                    linErrorStatus[u8ChannelCounter] = ERROR;
+                    continue;
+                }
+
+                /* After baudrate configuration, BRR should be greater or equal to 16 */
+                if (pCurrentUSARTType->BRR < (uint32_t)16U)
+                {
+                    linErrorStatus[u8ChannelCounter] = ERROR;
+                    continue;
+                }
+
+                /* Enable LIN mode */
                 pCurrentUSARTType->CR2 |= USART_CR2_LINEN_Msk;
 
-                if (linErrorStatus == SUCCESS)
+                /* Enable Transmister and Receiver */
+                pCurrentUSARTType->CR1 |= (USART_CR1_TE_Msk | USART_CR1_RE_Msk);
+
+                /* Wait until the premable frame was sent successfully */
+                while ((pCurrentUSARTType->ISR &= USART_ISR_TXE_Msk)!=(uint32_t)0U);
+
+                linErrorStatus[u8ChannelCounter] = SUCCESS;
+
+            }
+
+            for (u8ChannelCounter = 0; u8ChannelCounter < Config->numberOfChannel; u8ChannelCounter++)
+            {
+                if (linErrorStatus[u8ChannelCounter] == SUCCESS)
                 {
                     pLinCurrentChannelConfig->u8ChannelState = LIN_CH_OPERATIONAL;
                 }
@@ -186,4 +228,66 @@ static Std_ReturnType Lin_Ipw_SendHeader(uint8_t Channel, const Lin_PduType *pcP
 {
 
     return E_OK;
+}
+
+static void Lin_USART_SetBaudrate(USART_TypeDef *USARTx, uint32_t u32Baudrate)
+{
+    uint32_t u32UsartSrcClk;
+
+    /* Set Oversampling by 16 */
+    USARTx->CR1 &= (~USART_CR1_OVER8_Msk);
+
+    u32UsartSrcClk = Lin_USART_Get_Peripheral_Clk(USARTx);
+
+    LL_USART_SetBaudRate(USARTx, u32UsartSrcClk, LL_USART_OVERSAMPLING_16, u32Baudrate);
+}
+
+static uint32_t Lin_USART_Get_Peripheral_Clk(USART_TypeDef *USARTx)
+{
+    uint32_t periphclk = LL_RCC_PERIPH_FREQUENCY_NO;
+    /*---------------------------- USART BRR Configuration ---------------------
+     * Retrieve Clock frequency used for USART Peripheral
+     */
+    if (USARTx == USART1)
+    {
+      periphclk = LL_RCC_GetUSARTClockFreq(LL_RCC_USART1_CLKSOURCE);
+    }
+    else if (USARTx == USART2)
+    {
+#if defined (RCC_CFGR3_USART2SW)
+      periphclk = LL_RCC_GetUSARTClockFreq(LL_RCC_USART2_CLKSOURCE);
+#else
+      /* USART2 clock is PCLK */
+      LL_RCC_GetSystemClocksFreq(&RCC_Clocks);
+      periphclk = RCC_Clocks.PCLK1_Frequency;
+#endif
+    }
+    else if (USARTx == USART3)
+    {
+#if defined (RCC_CFGR3_USART3SW)
+      periphclk = LL_RCC_GetUSARTClockFreq(LL_RCC_USART3_CLKSOURCE);
+#else
+      /* USART3 clock is PCLK */
+      LL_RCC_GetSystemClocksFreq(&RCC_Clocks);
+      periphclk = RCC_Clocks.PCLK1_Frequency;
+#endif
+    }
+#if defined(UART4)
+    else if (USARTx == UART4)
+    {
+      periphclk = LL_RCC_GetUARTClockFreq(LL_RCC_UART4_CLKSOURCE);
+    }
+#endif /* UART4 */
+#if defined(UART5)
+    else if (USARTx == UART5)
+    {
+      periphclk = LL_RCC_GetUARTClockFreq(LL_RCC_UART5_CLKSOURCE);
+    }
+#endif /* UART5 */
+    else
+    {
+      /* Nothing to do, as error code is already assigned to ERROR value */
+    }
+
+    return periphclk;
 }
