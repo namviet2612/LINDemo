@@ -8,16 +8,16 @@
 /* User definitions */
 typedef struct Lin_ChannelConfigType
 {
-    int channelID;
+    uint8_t channelID;
     Lin_ChannelState u8ChannelState;
     USART_TypeDef *pUSARTType;
-    LL_USART_InitTypeDef *pUSARTInit;
+    uint32_t baudrate;
 } Lin_ChannelConfigType;
 
 /* Structure */
 typedef struct Lin_ConfigType
 {
-    int numberOfChannel;
+    uint8_t numberOfChannel;
     Lin_ChannelConfigType *pLinChannelConfig;
 } Lin_ConfigType;
 
@@ -29,13 +29,13 @@ typedef enum Std_ReturnType
 
 /* Function prototypes */
 void Lin_Init(const Lin_ConfigType *Config);                 /* Initializes the LIN module */
-Std_ReturnType Lin_CheckWakeup(int Channel);                 /* Checks if a wakeup has occurred on the addressed LIN channel */
-Std_ReturnType Lin_GoToSleep(int Channel);                   /* Instructs the driver to transmit a go-to-sleep-command on the addressed LIN channel */
-Std_ReturnType Lin_GoToSleepInternal(int Channel);           /* Sets the channel state to LIN_CH_SLEEP, enables the wake-up detection and
+Std_ReturnType Lin_CheckWakeup(uint8 Channel);                 /* Checks if a wakeup has occurred on the addressed LIN channel */
+Std_ReturnType Lin_GoToSleep(uint8 Channel);                   /* Instructs the driver to transmit a go-to-sleep-command on the addressed LIN channel */
+Std_ReturnType Lin_GoToSleepInternal(uint8 Channel);           /* Sets the channel state to LIN_CH_SLEEP, enables the wake-up detection and
                                                     optionally sets the LIN hardware unit to reduced power operation mode (if supported by HW */
-Std_ReturnType Lin_Wakeup(int Channel);                      /* Generates a wake up pulse and sets the channel state to LIN_CH_OPERATIONAL */
-Std_ReturnType Lin_WakeupInternal(int Channel);              /* Sets the channel state to LIN_CH_OPERATIONAL without generating a wake up pulse */
-Lin_StatusType Lin_GetStatus(int Channel, int **Lin_SduPtr); /* Get the status of the LIN driver */
+Std_ReturnType Lin_Wakeup(uint8 Channel);                      /* Generates a wake up pulse and sets the channel state to LIN_CH_OPERATIONAL */
+Std_ReturnType Lin_WakeupInternal(uint8 Channel);              /* Sets the channel state to LIN_CH_OPERATIONAL without generating a wake up pulse */
+Lin_StatusType Lin_GetStatus(uint8 Channel, uint8 **Lin_SduPtr); /* Get the status of the LIN driver */
 
 /* Marco defintions */
 #define NULL_PTR 0x00

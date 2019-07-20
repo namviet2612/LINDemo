@@ -1,8 +1,11 @@
 #ifndef LIN_GENERALTYPES_H
 #define LIN_GENERALTYPES_H
 
+#include <stdint.h>
 /* Structure and Typedef */
-typedef int Lin_FramePidType;	        /* The LIN identifier (0...0x3F) together with its two parity bits */
+typedef uint8_t uint8;
+
+typedef uint8 Lin_FramePidType;	        /* The LIN identifier (0...0x3F) together with its two parity bits */
 
 typedef enum Lin_FrameCsModelType
 {
@@ -17,7 +20,7 @@ typedef enum Lin_FrameResponseType
     LIN_SLAVE_TO_SLAVE
 } Lin_FrameResponseType;                 /* Specify whether the frame processor is required to transmit the response part of the LIN frame */
 
-typedef int Lin_FrameDlType;            /* Data length of a LIN Frame */
+typedef uint8 Lin_FrameDlType;            /* Data length of a LIN Frame */
 
 typedef struct Lin_PduType
 {
@@ -25,7 +28,7 @@ typedef struct Lin_PduType
     Lin_FrameCsModelType Cs;            /* Checksum */
     Lin_FrameResponseType Drc;          /* Frame response type */
     Lin_FrameDlType Dl;                 /* Data length */
-    int* SduPtr;                        /*  SDU pointer from the LIN Interface to the LIN driver*/
+    uint8* SduPtr;                        /*  SDU pointer from the LIN Interface to the LIN driver*/
 } Lin_PduType;
 
 typedef enum Lin_StatusType

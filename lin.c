@@ -5,15 +5,14 @@ Lin_ModuleState gLinModuleState = LIN_UNINIT;
 const Lin_ConfigType *pLinCurrentConfig;
 
 /* Static function */
-static Std_ReturnType Lin_Ipw_SendHeader(int Channel, const Lin_PduType *pcPduInfoPtr);
+static Std_ReturnType Lin_Ipw_SendHeader(uint8_t Channel, const Lin_PduType *pcPduInfoPtr);
 
 void Lin_Init(const Lin_ConfigType *Config)
 {
     ErrorStatus linErrorStatus = ERROR;
     Lin_ChannelConfigType *pLinCurrentChannelConfig = Config->pLinChannelConfig;
     USART_TypeDef *pCurrentUSARTType = NULL_PTR;
-    LL_USART_InitTypeDef *pCurrentUSARTInitType = NULL_PTR;
-    int u8ChannelCounter = 0;
+    uint8_t u8ChannelCounter = 0;
 
     if (Config != NULL_PTR)
     {
@@ -22,7 +21,6 @@ void Lin_Init(const Lin_ConfigType *Config)
             for (u8ChannelCounter = 0; u8ChannelCounter < Config->numberOfChannel; u8ChannelCounter++)
             {
                 pCurrentUSARTType = (pLinCurrentChannelConfig + u8ChannelCounter)->pUSARTType;
-                pCurrentUSARTInitType = (pLinCurrentChannelConfig + u8ChannelCounter)->pUSARTInit;
 
                 /* First disable USART mode by clear UE bit */
                 pCurrentUSARTType->CR1 &= (~USART_CR1_UE_Msk);
@@ -43,7 +41,7 @@ void Lin_Init(const Lin_ConfigType *Config)
     }
 }
 
-Std_ReturnType Lin_CheckWakeup(int Channel)
+Std_ReturnType Lin_CheckWakeup(uint8 Channel)
 {
     if (Channel < LIN_MAX_HW_CHANNEL)
     {
@@ -60,7 +58,7 @@ Std_ReturnType Lin_CheckWakeup(int Channel)
     return (Std_ReturnType)E_OK;
 }
 
-Std_ReturnType Lin_SendFrame(int Channel, const Lin_PduType *PduInfoPtr)
+Std_ReturnType Lin_SendFrame(uint8 Channel, const Lin_PduType *PduInfoPtr)
 {
     Lin_ChannelConfigType *pLinCurrentChannelConfig = pLinCurrentConfig->pLinChannelConfig;
     if (Channel >= LIN_MAX_HW_CHANNEL)
@@ -91,7 +89,7 @@ Std_ReturnType Lin_SendFrame(int Channel, const Lin_PduType *PduInfoPtr)
     return (Std_ReturnType)E_OK;
 }
 
-Std_ReturnType Lin_GoToSleep(int Channel)
+Std_ReturnType Lin_GoToSleep(uint8 Channel)
 {
     if (Channel >= LIN_MAX_HW_CHANNEL)
     {
@@ -106,7 +104,7 @@ Std_ReturnType Lin_GoToSleep(int Channel)
     return (Std_ReturnType)E_OK;
 }
 
-Std_ReturnType Lin_GoToSleepInternal(int Channel)
+Std_ReturnType Lin_GoToSleepInternal(uint8 Channel)
 {
     if (Channel >= LIN_MAX_HW_CHANNEL)
     {
@@ -121,28 +119,7 @@ Std_ReturnType Lin_GoToSleepInternal(int Channel)
     return (Std_ReturnType)E_OK;
 }
 
-Std_ReturnType Lin_Wakeup(int Channel)
-{
-    Lin_ChannelConfigType *pLinCurrentChannelConfig = pLinCurrentConfig->pLinChannelConfig;
-    if (Channel >= LIN_MAX_HW_CHANNEL)
-    {
-        return (Std_ReturnType)E_NOT_OK;
-    }
-
-    if (gLinModuleState == LIN_UNINIT)
-    {
-        return (Std_ReturnType)E_NOT_OK;
-    }
-
-    if ((pLinCurrentChannelConfig + Channel)->u8ChannelState == LIN_CH_SLEEP_STATE)
-    {
-        return (Std_ReturnType)E_NOT_OK;
-    }
-
-    return (Std_ReturnType)E_OK;
-}
-
-Std_ReturnType Lin_WakeupInternal(int Channel)
+Std_ReturnType Lin_Wakeup(uint8 Channel)
 {
     Lin_ChannelConfigType *pLinCurrentChannelConfig = pLinCurrentConfig->pLinChannelConfig;
     if (Channel >= LIN_MAX_HW_CHANNEL)
@@ -163,7 +140,28 @@ Std_ReturnType Lin_WakeupInternal(int Channel)
     return (Std_ReturnType)E_OK;
 }
 
-Lin_StatusType Lin_GetStatus(int Channel, int **Lin_SduPtr)
+Std_ReturnType Lin_WakeupInternal(uint8 Channel)
+{
+    Lin_ChannelConfigType *pLinCurrentChannelConfig = pLinCurrentConfig->pLinChannelConfig;
+    if (Channel >= LIN_MAX_HW_CHANNEL)
+    {
+        return (Std_ReturnType)E_NOT_OK;
+    }
+
+    if (gLinModuleState == LIN_UNINIT)
+    {
+        return (Std_ReturnType)E_NOT_OK;
+    }
+
+    if ((pLinCurrentChannelConfig + Channel)->u8ChannelState == LIN_CH_SLEEP_STATE)
+    {
+        return (Std_ReturnType)E_NOT_OK;
+    }
+
+    return (Std_ReturnType)E_OK;
+}
+
+Lin_StatusType Lin_GetStatus(uint8 Channel, uint8 **Lin_SduPtr)
 {
     Lin_StatusType linCurrentStatus;
     if (Channel >= LIN_MAX_HW_CHANNEL)
@@ -184,7 +182,7 @@ Lin_StatusType Lin_GetStatus(int Channel, int **Lin_SduPtr)
     return linCurrentStatus;
 }
 
-static Std_ReturnType Lin_Ipw_SendHeader(int Channel, const Lin_PduType *pcPduInfoPtr)
+static Std_ReturnType Lin_Ipw_SendHeader(uint8_t Channel, const Lin_PduType *pcPduInfoPtr)
 {
 
     return E_OK;
